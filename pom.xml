@@ -18,6 +18,9 @@
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         
+        <!-- Game Paths -->
+        <cudagame.path>C:/Users/Brandon/CudaGame</cudagame.path>
+        
         <!-- Test Framework Versions -->
         <junit.version>5.10.0</junit.version>
         <testng.version>7.8.0</testng.version>
