@@ -5,6 +5,12 @@
         <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
     </listeners>
     
+    <test name="Lighting System Tests">
+        <classes>
+            <class name="com.cudagame.tests.testng.lighting.LightingSystemTest"/>
+        </classes>
+    </test>
+    
     <test name="Physics Engine Tests">
         <classes>
             <class name="com.cudagame.tests.testng.GamePhysicsTest">

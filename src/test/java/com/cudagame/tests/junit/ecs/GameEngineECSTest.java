@@ -103,7 +103,7 @@ public class GameEngineECSTest {
     @DisplayName("Test ECS Performance with Multiple Entities")
     @Description("Verify ECS can handle multiple entities efficiently")
     void testECSPerformance(int entityCount) {
-        long startTime = System.currentTimeMillis();
+        long startTime = java.lang.System.currentTimeMillis();
         
         List<Integer> entities = new ArrayList<>();
         for (int i = 0; i < entityCount; i++) {
@@ -112,12 +112,12 @@ public class GameEngineECSTest {
             componentManager.addComponent(id, new TransformComponent(i, i, i));
         }
         
-        long creationTime = System.currentTimeMillis() - startTime;
+        long creationTime = java.lang.System.currentTimeMillis() - startTime;
         
         // Update all entities
-        startTime = System.currentTimeMillis();
+        startTime = java.lang.System.currentTimeMillis();
         systemManager.updateAllSystems(0.016f); // 60 FPS frame time
-        long updateTime = System.currentTimeMillis() - startTime;
+        long updateTime = java.lang.System.currentTimeMillis() - startTime;
         
         assertAll("Performance Metrics",
             () -> assertThat(creationTime).isLessThan(1000L),
@@ -189,6 +189,9 @@ public class GameEngineECSTest {
         @Test
         @DisplayName("Test Component Pool Recycling")
         void testComponentPoolRecycling() {
+            // Set up the connection between managers
+            entityManager.setComponentManager(componentManager);
+            
             // Create and destroy many components to test pooling
             for (int i = 0; i < 100; i++) {
                 int entity = entityManager.createEntity("Temp");
@@ -246,6 +249,15 @@ public class GameEngineECSTest {
         
         void destroyEntity(int id) {
             entities.remove(id);
+            // When entity is destroyed, remove its components and add them to pool
+            if (componentManager != null) {
+                componentManager.recycleEntityComponents(id);
+            }
+        }
+        
+        private ComponentManager componentManager;
+        void setComponentManager(ComponentManager cm) {
+            this.componentManager = cm;
         }
         
         boolean isEntityAlive(int id) {
@@ -262,8 +274,19 @@ public class GameEngineECSTest {
         private Map<Class<?>, List<Object>> componentPools = new HashMap<>();
         
         <T> void addComponent(int entityId, T component) {
+            // Create a copy to ensure data integrity
+            T componentCopy = copyComponent(component);
             componentStore.computeIfAbsent(entityId, k -> new HashMap<>())
-                .put(component.getClass(), component);
+                .put(component.getClass(), componentCopy);
+        }
+        
+        @SuppressWarnings("unchecked")
+        private <T> T copyComponent(T component) {
+            if (component instanceof TransformComponent) {
+                TransformComponent tc = (TransformComponent) component;
+                return (T) new TransformComponent(tc.x, tc.y, tc.z);
+            }
+            return component;
         }
         
         <T> T getComponent(int entityId, Class<T> componentClass) {
@@ -302,6 +325,16 @@ public class GameEngineECSTest {
             return result;
         }
         
+        void recycleEntityComponents(int entityId) {
+            Map<Class<?>, Object> components = componentStore.remove(entityId);
+            if (components != null) {
+                for (Map.Entry<Class<?>, Object> entry : components.entrySet()) {
+                    componentPools.computeIfAbsent(entry.getKey(), k -> new ArrayList<>())
+                        .add(entry.getValue());
+                }
+            }
+        }
+        
         int getPoolSize(Class<?> componentClass) {
             List<Object> pool = componentPools.get(componentClass);
             return pool != null ? pool.size() : 0;
@@ -309,15 +342,15 @@ public class GameEngineECSTest {
     }
     
     static class SystemManager {
-        private List<System> systems = new ArrayList<>();
+        private List<GameSystem> systems = new ArrayList<>();
         
-        void addSystem(System system) {
+        void addSystem(GameSystem system) {
             systems.add(system);
             systems.sort((a, b) -> Integer.compare(a.priority, b.priority));
         }
         
         void updateAllSystems(float deltaTime) {
-            for (System system : systems) {
+            for (GameSystem system : systems) {
                 system.update(deltaTime);
             }
         }
@@ -346,11 +379,11 @@ public class GameEngineECSTest {
     }
     
     // System classes
-    static abstract class System {
+    static abstract class GameSystem {
         int priority;
         Runnable updateCallback;
         
-        System(int priority) {
+        GameSystem(int priority) {
             this.priority = priority;
         }
         
@@ -365,15 +398,15 @@ public class GameEngineECSTest {
         }
     }
     
-    static class PhysicsSystem extends System {
+    static class PhysicsSystem extends GameSystem {
         PhysicsSystem(int priority) { super(priority); }
     }
     
-    static class RenderSystem extends System {
+    static class RenderSystem extends GameSystem {
         RenderSystem(int priority) { super(priority); }
     }
     
-    static class AudioSystem extends System {
+    static class AudioSystem extends GameSystem {
         AudioSystem(int priority) { super(priority); }
     }
 }
