@@ -1,0 +1,49 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="CudaGame Test Suite" verbose="2" parallel="tests" thread-count="4">
+    
+    <listeners>
+        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    </listeners>
+    
+    <test name="Physics Engine Tests">
+        <classes>
+            <class name="com.cudagame.tests.testng.GamePhysicsTest">
+                <methods>
+                    <include name="testGravitySimulation"/>
+                    <include name="testCollisionDetection"/>
+                    <include name="testVelocityCalculations"/>
+                    <include name="testElasticCollision"/>
+                    <include name="testGravityWithAirResistance"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <test name="Performance Tests">
+        <groups>
+            <run>
+                <include name="performance"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.cudagame.tests.testng.GamePhysicsTest"/>
+        </classes>
+    </test>
+    
+    <test name="Concurrent Tests" parallel="methods" thread-count="3">
+        <classes>
+            <class name="com.cudagame.tests.testng.GamePhysicsTest">
+                <methods>
+                    <include name="testConcurrentPhysics"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <test name="All Tests">
+        <packages>
+            <package name="com.cudagame.tests.testng.*"/>
+        </packages>
+    </test>
+    
+</suite>
