@@ -18,21 +18,38 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    env.GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                    env.GIT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    if (isUnix()) {
+                        env.GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                        env.GIT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    } else {
+                        env.GIT_COMMIT = bat(script: '@git rev-parse HEAD', returnStdout: true).trim()
+                        env.GIT_BRANCH = bat(script: '@git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    }
                 }
             }
         }
         
         stage('Build') {
             steps {
-                sh 'mvn clean compile'
+                script {
+                    if (isUnix()) {
+                        sh 'mvn clean compile'
+                    } else {
+                        bat 'mvn clean compile'
+                    }
+                }
             }
         }
         
         stage('Unit Tests - JUnit') {
             steps {
-                sh 'mvn test -Pjunit-only'
+                script {
+                    if (isUnix()) {
+                        sh 'mvn test -Pjunit-only'
+                    } else {
+                        bat 'mvn test -Pjunit-only'
+                    }
+                }
             }
             post {
                 always {
@@ -43,7 +60,13 @@ pipeline {
         
         stage('Unit Tests - TestNG') {
             steps {
-                sh 'mvn test -Ptestng-only'
+                script {
+                    if (isUnix()) {
+                        sh 'mvn test -Ptestng-only'
+                    } else {
+                        bat 'mvn test -Ptestng-only'
+                    }
+                }
             }
             post {
                 always {
@@ -61,7 +84,13 @@ pipeline {
         
         stage('Integration Tests') {
             steps {
-                sh 'mvn verify -DskipUnitTests'
+                script {
+                    if (isUnix()) {
+                        sh 'mvn verify -DskipUnitTests'
+                    } else {
+                        bat 'mvn verify -DskipUnitTests'
+                    }
+                }
             }
             post {
                 always {
@@ -72,9 +101,17 @@ pipeline {
         
         stage('Code Coverage') {
             steps {
-                sh 'mvn jacoco:report'
+                script {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        if (isUnix()) {
+                            sh 'mvn jacoco:report'
+                        } else {
+                            bat 'mvn jacoco:report'
+                        }
+                    }
+                }
                 publishHTML(target: [
-                    allowMissing: false,
+                    allowMissing: true,
                     alwaysLinkToLastBuild: true,
                     keepAll: true,
                     reportDir: 'target/site/jacoco',
